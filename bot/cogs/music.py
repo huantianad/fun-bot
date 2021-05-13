@@ -1,6 +1,6 @@
 import base64
 import random
-import typing
+from typing import Union
 from datetime import timedelta
 from glob import glob
 from io import BytesIO
@@ -35,7 +35,7 @@ def ensure_voice():
 def dir_list() -> set: return set(x[6:-1].lower() for x in glob("music/*/"))
 
 
-def set_if_exists(embed: discord.Embed, name: str, value: typing.Union[list[str], str, float], inline=True) -> None:
+def set_if_exists(embed: discord.Embed, name: str, value: Union[list[str], str, float], inline=True) -> None:
     if not value:
         return
 
@@ -83,9 +83,9 @@ class Music(commands.Cog):
             if not ctx.voice_client:
                 await ctx.author.voice.channel.connect()
             elif ctx.author.voice.channel == ctx.voice_client.channel:
-                if ctx.message.content.lower().strip() in ('&join', '&j'):
-                    await ctx.send("Hey I'm already here!")
-                return True
+                if ctx.message.content.lower().strip() not in ('&join', '&j'):
+                    return True
+                await ctx.send("Hey I'm already here!")
             else:
                 await ctx.voice_client.disconnect()
                 await ctx.author.voice.channel.connect()
