@@ -5,7 +5,7 @@ from discord.ext import commands
 
 
 class General(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.command()
@@ -21,6 +21,13 @@ class General(commands.Cog):
 
         await (channel or ctx).send(message)
         await ctx.message.add_reaction("✅")
+
+    @commands.command()
+    @commands.is_owner()
+    async def eval(self, ctx: commands.Context, *, expression: str):
+        """Evaluates a python expression"""
+
+        await ctx.send(f"`{eval(expression)}`")
 
     @commands.command()
     @commands.is_owner()
