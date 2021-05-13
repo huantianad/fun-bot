@@ -1,7 +1,9 @@
 import traceback
 from collections import defaultdict
 from configparser import ConfigParser
+from dataclasses import dataclass, field
 from glob import glob
+from typing import Union
 
 import discord
 from cogwatch import watch
@@ -16,6 +18,14 @@ def read_config():
     return config['Bot']
 
 
+@dataclass
+class ClientData:
+    queue: set[str] = field(default_factory=set)
+    now_playing: str = str()
+    channel: Union[None, discord.TextChannel] = None
+    message: Union[None, discord.Message] = None
+
+
 class FunBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="&", intents=discord.Intents.all(), help_command=Help(), case_insensitive=True)
@@ -24,7 +34,7 @@ class FunBot(commands.Bot):
         self.config = read_config()
         self.color = discord.Color.gold()
 
-        self.music_data = defaultdict(lambda: {'queue': set(), 'now_playing': '', 'channel': None, 'message': None})
+        self.music_data = defaultdict(ClientData)
 
     @watch(path='bot/cogs')
     async def on_ready(self):

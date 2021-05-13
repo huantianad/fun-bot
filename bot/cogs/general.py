@@ -3,9 +3,11 @@ from typing import Optional
 from discord import TextChannel
 from discord.ext import commands
 
+from ..main import FunBot
+
 
 class General(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: FunBot):
         self.bot = bot
 
     @commands.command()

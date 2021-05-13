@@ -4,9 +4,11 @@ from datetime import datetime
 from discord import Color, Embed
 from discord.ext import commands, tasks
 
+from ..main import FunBot
+
 
 class Reminder(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: FunBot):
         self.bot = bot
         self.main_loop.start()
         self.reminder_enabled = True

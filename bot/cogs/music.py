@@ -10,6 +10,8 @@ from discord.ext import commands, tasks
 from mutagen import File
 from mutagen.flac import FLAC, Picture
 
+from ..main import FunBot
+
 
 def connect_ensure_voice():
     async def predicate(ctx: commands.Context):
@@ -67,7 +69,7 @@ def get_art(file_):
 
 
 class Music(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: FunBot):
         self.bot = bot
 
         self.music_loop.start()
@@ -89,7 +91,7 @@ class Music(commands.Cog):
                 await ctx.author.voice.channel.connect()
 
             await ctx.send("Hello! :wave:")
-            self.music_data[ctx.guild.id]['channel'] = ctx.channel
+            self.music_data[ctx.guild.id].channel = ctx.channel
             return True
         else:
             await ctx.send("You are not connected to a voice channel!")
@@ -125,7 +127,7 @@ class Music(commands.Cog):
             await ctx.send("You have to provide me something to play!")
             return
 
-        queue = self.music_data[ctx.guild.id]['queue']
+        queue = self.music_data[ctx.guild.id].queue
         invalid = []
 
         for group in groups:
@@ -146,7 +148,7 @@ class Music(commands.Cog):
     async def play_all(self, ctx: commands.Context):
         """Adds all song groups to the queue"""
 
-        self.music_data[ctx.guild.id]['queue'] = dir_list()
+        self.music_data[ctx.guild.id].queue = dir_list()
         await ctx.send(f"Queued `{'`, `'.join(dir_list())}`.")
 
     @ensure_voice()
@@ -189,7 +191,7 @@ class Music(commands.Cog):
             await ctx.send("You have to provide me something to remove!")
             return
 
-        queue = self.music_data[ctx.guild.id]['queue']
+        queue = self.music_data[ctx.guild.id].queue
         invalid = []
 
         for group in groups:
@@ -208,7 +210,7 @@ class Music(commands.Cog):
     async def clear(self, ctx: commands.Context):
         """Clears the queue."""
 
-        self.music_data[ctx.guild.id]['queue'] = set()
+        self.music_data[ctx.guild.id].queue = set()
         await ctx.send("The queue has been cleared!")
 
     @ensure_voice()
@@ -216,7 +218,7 @@ class Music(commands.Cog):
     async def now_playing(self, ctx: commands.Context):
         """Displays the currently playing song."""
 
-        path = self.music_data[ctx.guild.id]['now_playing']
+        path = self.music_data[ctx.guild.id].now_playing
 
         if not path:
             await ctx.send(f"Looks like nothing's playing right now. Use `{ctx.prefix}play` to play something.")
@@ -261,7 +263,7 @@ class Music(commands.Cog):
     async def queue(self, ctx: commands.Context):
         """Displays the current groups in the queue"""
 
-        queue = self.music_data[ctx.guild.id]['queue']
+        queue = self.music_data[ctx.guild.id].queue
         message = f"The queue contains `{'`, `'.join(queue)}`." if queue else "The queue is empty."
         await ctx.send(message)
 
@@ -273,37 +275,37 @@ class Music(commands.Cog):
             if client.is_playing() or client.is_paused():
                 continue
 
-            if not client_data['queue']:
-                client_data['now_playing'] = None
+            if not client_data.queue:
+                client_data.now_playing = None
                 continue
 
             # Get a list of all the possible songs to play
-            groups = [glob(f"music/{group}/*") for group in client_data['queue']]
+            groups = [glob(f"music/{group}/*") for group in client_data.queue]
             songs = [song for group in groups for song in group]
 
             # prevent the current song from being played twice in a row
-            if client_data['now_playing'] in songs:
-                songs.remove(client_data['now_playing'])
+            if client_data.now_playing in songs:
+                songs.remove(client_data.now_playing)
 
-            client_data['now_playing'] = random.choice(songs)
+            client_data.now_playing = random.choice(songs)
 
-            source = discord.FFmpegPCMAudio(client_data['now_playing'])
+            source = discord.FFmpegPCMAudio(client_data.now_playing)
             client.play(source, after=lambda e: print(f'Player error: {e}') if e else None)
 
             # Show song that was just played
-            channel = client_data['channel']  # type: discord.TextChannel
-            message = client_data['message']  # type: discord.Message
+            channel = client_data.channel  # type: discord.TextChannel
+            message = client_data.message  # type: discord.Message
 
             async with channel.typing():
-                embed, image = await self.make_np_embed(client_data['now_playing'])
+                embed, image = await self.make_np_embed(client_data.now_playing)
 
                 if message:
                     await message.delete()
 
                 if image is not None:
-                    client_data['message'] = await channel.send(embed=embed, file=image)
+                    client_data.message = await channel.send(embed=embed, file=image)
                 else:
-                    client_data['message'] = await channel.send(embed=embed)
+                    client_data.message = await channel.send(embed=embed)
 
     @music_loop.before_loop
     async def before_music(self):
