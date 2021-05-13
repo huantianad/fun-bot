@@ -12,20 +12,14 @@ from mutagen.flac import FLAC, Picture
 
 def connect_ensure_voice():
     async def predicate(ctx: commands.Context):
-        if ctx.voice_client is None:
-            if ctx.author.voice:
-                await ctx.author.voice.channel.connect()
-                ctx.bot.music_data[ctx.guild.id]['channel'] = ctx.channel
-            else:
-                await ctx.send("You are not connected to a voice channel.")
-                return False
-        return True
+        return await ctx.invoke(ctx.bot.get_command('join'))
 
     return commands.check(predicate)
 
 
 def ensure_voice():
     """Only allows the command to be executed when the bot is connected to a voice channel"""
+
     async def predicate(ctx: commands.Context):
         if ctx.voice_client is None:
             await ctx.send(f"I'm not connected to a voice channel yet! Use `{ctx.prefix}join` to add me.")
@@ -62,6 +56,7 @@ def get_art(file_):
     if isinstance(file_, FLAC):
         picture = file_.pictures[0]
         ext = extensions.get(picture.mime, "jpg")
+        return picture, ext
 
     for b64_data in file_.get("metadata_block_picture", []):
         data = base64.b64decode(b64_data)
@@ -89,10 +84,12 @@ class Music(commands.Cog):
                 await ctx.voice_client.disconnect()
                 await ctx.author.voice.channel.connect()
 
+            await ctx.send("Hello! :wave:")
             self.music_data[ctx.guild.id]['channel'] = ctx.channel
+            return True
         else:
             await ctx.send("You are not connected to a voice channel.")
-            raise commands.CommandError("Author not connected to a voice channel.")
+            return False
 
     @ensure_voice()
     @commands.command(aliases=['stop'])
@@ -101,6 +98,8 @@ class Music(commands.Cog):
 
         await ctx.voice_client.disconnect()
         self.music_data.pop(ctx.guild.id)  # remove the data for this isntance
+
+        await ctx.send("Goodbye :wave:")
 
     @ensure_voice()
     @commands.command(aliases=['ls'])

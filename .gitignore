@@ -146,5 +146,6 @@ user_data.json
 music/*/
 
 # IDE
-.vscode
-.idea
+.vscode/
+.idea/
+.directory
