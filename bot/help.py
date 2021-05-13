@@ -37,6 +37,6 @@ class Help(commands.DefaultHelpCommand):
         embed = discord.Embed(title=f"{self.clean_prefix}{command.name}", color=self.color)
         if command.help:
             embed.description = command.help
-        embed.add_field(name='Syntax:', value=f"`{self.get_command_signature(command)}`")
+        embed.add_field(name='Syntax:', value=f"`{self.get_command_signature(command).strip()}`")
 
         await self.get_destination().send(embed=embed)

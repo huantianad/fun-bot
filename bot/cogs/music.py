@@ -1,5 +1,6 @@
 import base64
 import random
+import typing
 from datetime import timedelta
 from glob import glob
 from io import BytesIO
@@ -29,10 +30,10 @@ def ensure_voice():
     return commands.check(predicate)
 
 
-def dir_list(): return set(x[6:-1].lower() for x in glob("music/*/"))
+def dir_list() -> set: return set(x[6:-1].lower() for x in glob("music/*/"))
 
 
-def set_if_exists(embed, name, value, inline=True):
+def set_if_exists(embed: discord.Embed, name: str, value: typing.Union[list[str], str, float], inline=True) -> None:
     if not value:
         return
 
@@ -59,8 +60,7 @@ def get_art(file_):
         return picture, ext
 
     for b64_data in file_.get("metadata_block_picture", []):
-        data = base64.b64decode(b64_data)
-        picture = Picture(data)
+        picture = Picture(base64.b64decode(b64_data))
         ext = extensions.get(picture.mime, "jpg")
 
     return picture, ext
@@ -74,12 +74,16 @@ class Music(commands.Cog):
         self.music_data = self.bot.music_data
 
     @commands.command(aliases=['j'])
-    async def join(self, ctx: commands.Context):
+    async def join(self, ctx: commands.Context) -> bool:
         """Make the bot join a voice channel to start playing music!"""
 
         if ctx.author.voice:
             if not ctx.voice_client:
                 await ctx.author.voice.channel.connect()
+            elif ctx.author.voice.channel == ctx.voice_client.channel:
+                if ctx.message.content.lower().strip() in ('&join', '&j'):
+                    await ctx.send("Hey I'm already here!")
+                return True
             else:
                 await ctx.voice_client.disconnect()
                 await ctx.author.voice.channel.connect()
@@ -88,33 +92,37 @@ class Music(commands.Cog):
             self.music_data[ctx.guild.id]['channel'] = ctx.channel
             return True
         else:
-            await ctx.send("You are not connected to a voice channel.")
+            await ctx.send("You are not connected to a voice channel!")
             return False
 
     @ensure_voice()
-    @commands.command(aliases=['stop'])
+    @commands.command(aliases=['stop', 'l'])
     async def leave(self, ctx: commands.Context):
         """Disconnects the bot from the voice channel and clears the queue."""
 
         await ctx.voice_client.disconnect()
         self.music_data.pop(ctx.guild.id)  # remove the data for this isntance
 
-        await ctx.send("Goodbye :wave:")
+        await ctx.send("Goodbye! :wave:")
 
     @ensure_voice()
     @commands.command(aliases=['ls'])
     async def list(self, ctx: commands.Context):
         """Lists all the possible song groups that you can add to the queue."""
 
-        await ctx.send(f"Possible song groups: `{'`, `'.join(dir_list())}`")
+        await ctx.send(f"Possible song groups: `{'`, `'.join(dir_list())}`.")
 
     @connect_ensure_voice()
     @commands.command(aliases=['p'])
-    async def play(self, ctx: commands.Context, *groups):
+    async def play(self, ctx: commands.Context, *groups: str):
         """Plays the specified song group or resumes the bot when paused."""
         if ctx.voice_client.is_paused():
             ctx.voice_client.resume()
             await ctx.send("Resumed playing :arrow_forward:")
+            return
+
+        if not groups:
+            await ctx.send("You have to provide me something to play!")
             return
 
         queue = self.music_data[ctx.guild.id]['queue']
@@ -129,9 +137,9 @@ class Music(commands.Cog):
                 invalid.append(group)
 
         if invalid:
-            await ctx.send(f"Failed to add `{'`, `'.join(invalid)}`")
-        if queue:
-            await ctx.send(f"The queue now contains: `{'`, `'.join(queue)}`")
+            await ctx.send(f"Failed to add `{'`, `'.join(invalid)}`.")
+        if len(invalid) != len(groups):
+            await ctx.send(f"Queued `{', '.join([group for group in groups if group not in invalid])}`.")
 
     @connect_ensure_voice()
     @commands.command(name='playall', aliases=['pa'])
@@ -139,27 +147,27 @@ class Music(commands.Cog):
         """Adds all song groups to the queue"""
 
         self.music_data[ctx.guild.id]['queue'] = dir_list()
-        await ctx.send(f"The queue now contains: `{'`, `'.join(dir_list())}`")
+        await ctx.send(f"Queued `{'`, `'.join(dir_list())}`.")
 
     @ensure_voice()
     @commands.command()
     async def pause(self, ctx: commands.Context):
-        """Pauses the music."""
+        """Pauses the currently playing song."""
 
         if ctx.voice_client.is_paused():
             await ctx.send("I'm already paused!")
         else:
             ctx.voice_client.pause()
-            await ctx.send("Paused :pause_button:")
+            await ctx.send("Paused. :pause_button:")
 
     @ensure_voice()
     @commands.command()
     async def resume(self, ctx: commands.Context):
-        """Resumes the music if paused."""
+        """Resumes the currently playing song."""
 
         if ctx.voice_client.is_paused():
             ctx.voice_client.resume()
-            await ctx.send("Resumed playing :arrow_forward:")
+            await ctx.send("Resumed playing. :arrow_forward:")
         else:
             await ctx.send("I'm already playing!")
 
@@ -174,8 +182,12 @@ class Music(commands.Cog):
 
     @ensure_voice()
     @commands.command(aliases=['r'])
-    async def remove(self, ctx: commands.Context, *groups):
+    async def remove(self, ctx: commands.Context, *groups: str):
         """Removes a group from the queue"""
+
+        if not groups:
+            await ctx.send("You have to provide me something to remove!")
+            return
 
         queue = self.music_data[ctx.guild.id]['queue']
         invalid = []
@@ -183,15 +195,13 @@ class Music(commands.Cog):
         for group in groups:
             try:
                 queue.remove(group)
-            except ValueError:
+            except KeyError:
                 invalid.append(group)
 
         if invalid:
-            await ctx.send(f"Failed to remove `{', '.join(invalid)}`.")
-        if queue:
-            await ctx.send(f"The queue now contains: `{', '.join(queue)}`.")
-        else:
-            await ctx.send("The queue is empty.")
+            await ctx.send(f"Failed to remove `{'`, `'.join(invalid)}`.")
+        if len(invalid) != len(groups):
+            await ctx.send(f"Removed `{'`, `'.join([group for group in groups if group not in invalid])}`.")
 
     @ensure_voice()
     @commands.command(aliases=['cl', 'clr'])
@@ -252,7 +262,7 @@ class Music(commands.Cog):
         """Displays the current groups in the queue"""
 
         queue = self.music_data[ctx.guild.id]['queue']
-        message = f"The queue contains: `{'`, `'.join(queue)}`." if queue else "The queue is empty."
+        message = f"The queue contains `{'`, `'.join(queue)}`." if queue else "The queue is empty."
         await ctx.send(message)
 
     @tasks.loop(seconds=1)
@@ -285,7 +295,6 @@ class Music(commands.Cog):
             message = client_data['message']  # type: discord.Message
 
             async with channel.typing():
-
                 embed, image = await self.make_np_embed(client_data['now_playing'])
 
                 if message:
