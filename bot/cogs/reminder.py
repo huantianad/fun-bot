@@ -15,7 +15,6 @@ class Reminder(commands.Cog):
 
         self.numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
         self.check_x = ["✔️", "✖️"]
-        self.guild_id = self.bot.config.getint('reminder_guild_id')
         self.color = self.bot.color
 
     @commands.command()
@@ -160,8 +159,6 @@ class Reminder(commands.Cog):
         if not self.reminder_enabled:
             return
 
-        guild = self.bot.get_guild(self.guild_id)
-
         now = datetime.now()  # Get's the current time.
         weekday = now.weekday()  # Find the day of the week, needed later.
         now = now.hour * 60 + now.minute - 514  # I used the number of minutes since the first period for calculations.
@@ -174,12 +171,12 @@ class Reminder(commands.Cog):
             with open("user_data.json", "r+") as file:
                 file_data = json.load(file)
 
-            for user, user_data in file_data.items():
+            for user_id, user_data in file_data.items():
                 embed = Embed(title="Class starting!",
                               description=f"Period {period} is staring in one minute! Get ready for class!",
                               color=Color.green())
 
-                user = guild.get_member(int(user))
+                user = self.bot.get_user(int(user_id))
                 elective = 5 if user_data['lunch_period'] == 6 else 6
 
                 if user_data['lunch_period'] == period:  # we don't want to ping on lunch periods
