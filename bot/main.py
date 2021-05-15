@@ -3,7 +3,7 @@ from collections import defaultdict
 from configparser import ConfigParser
 from dataclasses import dataclass, field
 from glob import glob
-from typing import Union
+from typing import Optional
 
 import discord
 from cogwatch import watch
@@ -22,8 +22,8 @@ def read_config():
 class ClientData:
     queue: set[str] = field(default_factory=set)
     now_playing: str = str()
-    channel: Union[None, discord.TextChannel] = None
-    message: Union[None, discord.Message] = None
+    channel: Optional[discord.TextChannel] = None
+    message: Optional[discord.Message] = None
 
 
 class FunBot(commands.Bot):
