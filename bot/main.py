@@ -71,6 +71,9 @@ class FunBot(commands.Bot):
         elif isinstance(exc, commands.MemberNotFound):
             await ctx.send(f'The user "{exc.argument}" was not found.')
 
+        elif isinstance(exc, (commands.NotOwner, commands.MissingPermissions)):
+            await ctx.send("Hey you're not allowed to do that")
+
         elif isinstance(exc, commands.CheckFailure):
             pass
         else:

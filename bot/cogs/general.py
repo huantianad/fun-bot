@@ -36,6 +36,8 @@ class General(commands.Cog):
     async def shutdown(self, ctx: commands.Context):
         """Turns off the bot"""
 
+        await ctx.send("Shutting down... :octagonal_sign:")
+
         for client in self.bot.voice_clients:
             await client.disconnect()
 
