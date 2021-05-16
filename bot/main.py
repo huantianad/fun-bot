@@ -10,6 +10,7 @@ from cogwatch import watch
 from discord.ext import commands
 
 from .help import Help
+from .lang import send_embed
 
 
 def read_config():
@@ -62,19 +63,21 @@ class FunBot(commands.Bot):
 
     async def on_command_error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, commands.MissingRequiredArgument):
-            await ctx.send(f"The argument `{str(exc.param).split(':')[0]}` is required.")
+            argument = str(exc.param).split(':')[0]
+            await send_embed(ctx, 'error.missing_required_argument', argument=argument)
 
         elif isinstance(exc, commands.CommandNotFound):
             failed_command = str(exc).split('"')[1]
-            await ctx.send(f"The command `{self.command_prefix}{failed_command}` doesn't actually exist.")
+            await send_embed(ctx, 'error.command_not_found', prefix=self.command_prefix, failed_command=failed_command)
 
         elif isinstance(exc, commands.MemberNotFound):
-            await ctx.send(f'The user "{exc.argument}" was not found.')
+            await send_embed(ctx, 'error.member_not_found', user=exc.argument)
 
         elif isinstance(exc, (commands.NotOwner, commands.MissingPermissions)):
-            await ctx.send("Hey you're not allowed to do that")
+            await send_embed(ctx, 'error.missing_permissions')
 
         elif isinstance(exc, commands.CheckFailure):
             pass
+
         else:
             await self.unhandled_error(ctx, exc)

@@ -1,0 +1,97 @@
+color: "gold"
+
+error:
+  color: "red"
+
+  missing_required_argument:
+    description: "The argument `%{argument}` is required."
+
+  command_not_found:
+    description: "The command `%{prefix}%{failed_command}` doesn't actually exist."
+
+  member_not_found:
+    description: 'The user "%{user}" was not found.'
+
+  missing_permissions:
+    description: "Hey you're not allowed to do that!"
+
+general:
+  ping:
+    description: "Pong!"
+
+  eval:
+    title: "Eval result:"
+    description: "`%{result}`"
+    color: "green"
+
+  shutdown:
+    description: "Shutting down... :octagonal_sign:"
+
+music:
+  color: "green"
+
+  error:
+    color: "red"
+
+    already_paused:
+      description: "I'm already paused!"
+
+    already_playing:
+      description: "I'm already playing!"
+
+    nothing_playing:
+      description: "Looks like nothing's playing right now. Use `%{prefix}play` to play something."
+      color: "gold"
+
+    no_arg:
+      description: "You have to provide me something to %{arg}!"
+
+    user_not_connected:
+      description: "You are not connected to a voice channel!"
+
+    bot_not_connected:
+      description: "I'm not connected to a voice channel yet! Use `%{prefix}join` to add me."
+
+    bot_already_connected:
+      description: "Hey I'm already here!"
+
+    queue_fail:
+      description: "Failed to add `%{groups}`."
+
+    remove_fail:
+      description: "Failed to remove `%{groups}`."
+
+  list:
+    description: "Possible song groups are `%{groups}`."
+
+  join:
+    description: "Hello! :wave:"
+
+  leave:
+    description: "Goodbye! :wave:"
+
+  resume:
+    description: "Resumed playing. :arrow_forward:"
+
+  pause:
+    description: "Paused. :pause_button:"
+
+  queue:
+    description: "The queue contains `%{groups}`."
+
+  queue_empty:
+    description: "The queue is empty."
+
+  queued:
+    description: "Queued `%{groups}`."
+
+  removed:
+    description: "Removed `%{groups}`."
+
+  skip:
+    description: "Skipped!"
+
+  clear:
+    description: "The queue has been cleared!"
+
+

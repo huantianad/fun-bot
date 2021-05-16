@@ -3,6 +3,7 @@ from typing import Optional
 from discord import TextChannel
 from discord.ext import commands
 
+from ..lang import send_embed
 from ..main import FunBot
 
 
@@ -14,7 +15,7 @@ class General(commands.Cog):
     async def ping(self, ctx: commands.Context):
         """Pong!"""
 
-        await ctx.send("Pong!")
+        await send_embed(ctx, 'general.ping')
 
     @commands.command()
     @commands.has_permissions(manage_guild=True)
@@ -29,14 +30,14 @@ class General(commands.Cog):
     async def eval(self, ctx: commands.Context, *, expression: str):
         """Evaluates a python expression"""
 
-        await ctx.send(f"`{eval(expression)}`")
+        await send_embed(ctx, 'general.eval', result=eval(expression))
 
     @commands.command()
     @commands.is_owner()
     async def shutdown(self, ctx: commands.Context):
         """Turns off the bot"""
 
-        await ctx.send("Shutting down... :octagonal_sign:")
+        await send_embed(ctx, 'general.shutdown')
 
         for client in self.bot.voice_clients:
             await client.disconnect()
