@@ -1,4 +1,4 @@
-from typing import Union, Iterable
+from typing import Union
 
 import discord
 from yaml import safe_load
@@ -46,7 +46,7 @@ async def send_embed(messageable: discord.abc.Messageable, key: str, **kwargs) -
 
     # Dynamic values are stored as %{value}, replace those with the given values
     for placeholder, value in kwargs.items():
-        if isinstance(value, Iterable):
+        if placeholder == 'groups':
             value = '`, `'.join(value)
 
         description = description.replace(f'%{{{placeholder}}}', str(value))
