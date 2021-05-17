@@ -1,3 +1,4 @@
+import re
 from typing import Union
 
 import discord
@@ -20,7 +21,7 @@ def get_highest_color(input_dict: dict, key: str):
     if color:
         return color
 
-    return get_highest_color(input_dict, '.'.join(key.split('.')[:-1]))
+    return get_highest_color(input_dict, re.match(r'.*(?=\.)', key))
 
 
 def color_to_discord(name: str) -> discord.Color:
