@@ -36,14 +36,25 @@ def ensure_voice():
 def dir_list() -> set: return set(x[6:-1].lower() for x in glob("music/*/"))
 
 
+def timedelta_to_str(time: timedelta) -> str:
+    output = str(time).split(':', 1)[1]
+    if output[0] == '0':
+        output = output[1:]
+
+    return output
+
+
+def create_bar(frac: float) -> str:
+    start = round(frac * 30)
+    return '▬' * start + '🔘' + '▬' * (29 - start)
+
+
 def set_if_exists(embed: discord.Embed, name: str, value: Union[list[str], str, float], inline=True) -> None:
     if not value:
         return
 
     if isinstance(value, list):
         value = value[0]
-    elif isinstance(value, float):
-        value = str(timedelta(seconds=value//1)).split(':', 1)[1]
 
     embed.add_field(name=name, value=value, inline=inline)
 
@@ -84,9 +95,9 @@ class Music(commands.Cog):
             if not ctx.voice_client:
                 await ctx.author.voice.channel.connect()
             elif ctx.author.voice.channel == ctx.voice_client.channel:
-                if ctx.message.content.lower().strip() not in ('&join', '&j'):
-                    return True
-                await send_embed(ctx, "music.error.bot_already_connected")
+                if ctx.message.content.split()[0].lower().strip() in ('&join', '&j'):
+                    await send_embed(ctx, "music.error.bot_already_connected")
+                return True
             else:
                 await ctx.voice_client.disconnect()
                 await ctx.author.voice.channel.connect()
@@ -118,9 +129,9 @@ class Music(commands.Cog):
     @commands.command(aliases=['p'])
     async def play(self, ctx: commands.Context, *groups: str):
         """Plays the specified song group or resumes the bot when paused."""
+
         if ctx.voice_client.is_paused():
-            ctx.voice_client.resume()
-            await send_embed(ctx, 'music.resume')
+            await self.resume(ctx)
             return
 
         if not groups:
@@ -128,6 +139,7 @@ class Music(commands.Cog):
             return
 
         queue = self.music_data[ctx.guild.id].queue
+        added = []
         invalid = []
 
         for group in groups:
@@ -135,13 +147,14 @@ class Music(commands.Cog):
 
             if group in dir_list():
                 queue.add(group)
+                added.append(group)
             else:
                 invalid.append(group)
 
         if invalid:
             await send_embed(ctx, 'music.error.queue_fail', groups=invalid)
-        if len(invalid) != len(groups):  # if not all the groups failed to be added
-            await send_embed(ctx, 'music.queued', groups=[group for group in groups if group not in invalid])
+        if added:
+            await send_embed(ctx, 'music.queued', groups=added)
 
     @connect_ensure_voice()
     @commands.command(name='playall', aliases=['pa'])
@@ -178,7 +191,7 @@ class Music(commands.Cog):
     async def skip(self, ctx: commands.Context):
         """Skips the current song."""
 
-        # stopping the playing makes the task think that a song has finished
+        # stopping the client makes the task think that a song has finished
         ctx.voice_client.stop()
         await send_embed(ctx, 'music.skipped')
 
@@ -192,6 +205,7 @@ class Music(commands.Cog):
             return
 
         queue = self.music_data[ctx.guild.id].queue
+        removed = []
         invalid = []
 
         for group in groups:
@@ -199,12 +213,13 @@ class Music(commands.Cog):
                 queue.remove(group)
             except KeyError:
                 invalid.append(group)
+            else:
+                removed.append(group)
 
         if invalid:
             await send_embed(ctx, 'music.error.remove_fail', groups=invalid)
-
-        if len(invalid) != len(groups):  # If not all the groups failed to remove
-            await send_embed(ctx, 'music.removed', groups=[group for group in groups if group not in invalid])
+        if removed:
+            await send_embed(ctx, 'music.removed', groups=removed)
 
     @ensure_voice()
     @commands.command(aliases=['cl', 'clr'])
@@ -220,44 +235,48 @@ class Music(commands.Cog):
         """Displays the currently playing song."""
 
         path = self.music_data[ctx.guild.id].now_playing
+        timestamp = self.music_data[ctx.guild.id].timestamp
 
         if not path:
             await send_embed(ctx, 'music.error.nothing_playing', prefix=ctx.prefix)
             return
 
         async with ctx.typing():
-            embed, image = await self.make_np_embed(path)
+            embed, image = await self.make_np_embed(path, timestamp)
 
             if image is not None:
                 await ctx.send(embed=embed, file=image)
             else:
                 await ctx.send(embed=embed)
 
-    async def make_np_embed(self, path):
+    async def make_np_embed(self, path: str, timestamp: timedelta):
         file_ = File(path)
 
-        embed = discord.Embed(title=file_.get('title', path)[0], colour=discord.Colour.random())
+        total_length = timedelta(seconds=file_.info.length//1)
+        str_timestamp = timedelta_to_str(timestamp)
+        str_total_length = timedelta_to_str(total_length)
+
+        bar = create_bar(timestamp/total_length)
+
+        title = file_.get('title', path)
+        if isinstance(title, list):
+            title = title[0]
+
+        embed = discord.Embed(title=title, colour=discord.Colour.random())
 
         set_if_exists(embed, name='Artist', value=file_.get('artist'))
         set_if_exists(embed, name='Album', value=file_.get('album'))
-        embed.add_field(name='** **', value='** **')
-
         set_if_exists(embed, name='Track', value=file_.get('tracknumber'))
-        set_if_exists(embed, name='Duration', value=file_.info.length)
-        embed.add_field(name='** **', value='** **')
 
-        set_if_exists(embed, name='Description', value=file_.get('description'))
-        set_if_exists(embed, name='Comment', value=file_.get('comment'))
+        embed.add_field(name='** **', value=f'`{str_timestamp} {bar} {str_total_length}`')
 
         picture, ext = get_art(file_)
 
         if picture is not None:
-            image = discord.File(BytesIO(picture.data), filename=f'cover.{ext}')
+            picture = discord.File(BytesIO(picture.data), filename=f'cover.{ext}')
             embed.set_thumbnail(url=f'attachment://cover.{ext}')
-        else:
-            image = None
 
-        return embed, image
+        return embed, picture
 
     @ensure_voice()
     @commands.command(aliases=['q'])
@@ -275,7 +294,11 @@ class Music(commands.Cog):
         for client in self.bot.voice_clients:
             client_data = self.music_data[client.guild.id]
 
-            if client.is_playing() or client.is_paused():
+            if client.is_playing():
+                client_data.timestamp += timedelta(seconds=1)
+                continue
+
+            if client.is_paused():
                 continue
 
             if not client_data.queue:
@@ -295,12 +318,15 @@ class Music(commands.Cog):
             source = discord.FFmpegPCMAudio(client_data.now_playing)
             client.play(source, after=lambda e: print(f'Player error: {e}') if e else None)
 
+            # Reset the timestamp
+            client_data.timestamp = timedelta()
+
             # Show song that was just played
             channel = client_data.channel  # type: discord.TextChannel
             message = client_data.message  # type: discord.Message
 
             async with channel.typing():
-                embed, image = await self.make_np_embed(client_data.now_playing)
+                embed, image = await self.make_np_embed(client_data.now_playing, client_data.timestamp)
 
                 if message:
                     await message.delete()
