@@ -137,9 +137,10 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+
 # Project specific
 # config
-config.ini
+config.yaml
 user_data.json
 
 # music

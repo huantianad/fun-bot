@@ -1,4 +1,7 @@
 # Make sure to rename this file to config.ini before you use the bot
 
-[Bot]
-token = Put your bot token here!
+Bot:
+  token: # Put your bot token here!!!!!!
+
+Cogs:
+  blacklist:

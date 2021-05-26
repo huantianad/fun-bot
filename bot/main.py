@@ -1,6 +1,5 @@
 import traceback
 from collections import defaultdict
-from configparser import ConfigParser
 from dataclasses import dataclass, field
 from glob import glob
 from typing import Optional
@@ -8,15 +7,16 @@ from typing import Optional
 import discord
 from cogwatch import watch
 from discord.ext import commands
+from yaml import safe_load
 
 from .help import Help
 from .lang import send_embed
 
 
 def read_config():
-    config = ConfigParser()
-    config.read('config.ini')
-    return config['Bot']
+    with open('config.yaml') as config_file:
+        config = safe_load(config_file)
+    return config
 
 
 @dataclass
@@ -33,20 +33,30 @@ class FunBot(commands.Bot):
         self.add_check(self.global_check)
 
         self.config = read_config()
+        self.token = self.config['Bot']['token']
         self.color = discord.Color.gold()
 
         self.music_data = defaultdict(ClientData)
 
     @watch(path='bot/cogs')
     async def on_ready(self):
+        self.load_cogs()
+
+        print("Bot ready and cogs loaded.")
+
+    def load_cogs(self):
         cog_list = glob('bot/cogs/*.py')
+
+        for cog in self.config['Cogs']['blacklist']:
+            try:
+                cog_list.remove(f"bot/cogs/{cog}.py")
+            except ValueError:
+                pass
 
         for cog in cog_list:
             cog = cog.replace('/', '.')[:-3]
             self.load_extension(cog)
             print("Loaded", cog)
-
-        print("Bot ready and cogs loaded.")
 
     async def global_check(self, ctx: commands.Context):
         await self.wait_until_ready()
