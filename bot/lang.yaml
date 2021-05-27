@@ -58,6 +58,9 @@ music:
     queue_fail:
       description: "Failed to add `%{groups}`."
 
+    already_queued:
+      description: "`%{groups}` is already in the queue."
+
     remove_fail:
       description: "Failed to remove `%{groups}`."
 

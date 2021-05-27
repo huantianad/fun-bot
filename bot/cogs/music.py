@@ -123,7 +123,7 @@ class Music(commands.Cog):
     async def list(self, ctx: commands.Context):
         """Lists all the possible song groups that you can add to the queue."""
 
-        await send_embed(ctx, 'music.list', groups=dir_list())
+        await send_embed(ctx, 'music.list', groups=sorted(dir_list()))
 
     @connect_ensure_voice()
     @commands.command(aliases=['p'])
@@ -141,11 +141,14 @@ class Music(commands.Cog):
         queue = self.music_data[ctx.guild.id].queue
         added = []
         invalid = []
+        already_queued = []
 
         for group in groups:
             group = group.lower()
 
-            if group in dir_list():
+            if group in queue:
+                already_queued.append(group)
+            elif group in dir_list():
                 queue.add(group)
                 added.append(group)
             else:
@@ -153,6 +156,8 @@ class Music(commands.Cog):
 
         if invalid:
             await send_embed(ctx, 'music.error.queue_fail', groups=invalid)
+        if already_queued:
+            await send_embed(ctx, 'music.error.already_queued', groups=already_queued)
         if added:
             await send_embed(ctx, 'music.queued', groups=added)
 
@@ -209,12 +214,13 @@ class Music(commands.Cog):
         invalid = []
 
         for group in groups:
-            try:
+            group = group.lower()
+
+            if group in queue:
                 queue.remove(group)
-            except KeyError:
-                invalid.append(group)
-            else:
                 removed.append(group)
+            else:
+                invalid.append(group)
 
         if invalid:
             await send_embed(ctx, 'music.error.remove_fail', groups=invalid)
@@ -283,7 +289,7 @@ class Music(commands.Cog):
     async def queue(self, ctx: commands.Context):
         """Displays the current groups in the queue"""
 
-        queue = self.music_data[ctx.guild.id].queue
+        queue = sorted(self.music_data[ctx.guild.id].queue)
         if queue:
             await send_embed(ctx, 'music.queue', groups=queue)
         else:
