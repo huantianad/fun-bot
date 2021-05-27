@@ -7,4 +7,5 @@ Cogs:
   # Cogs that the bot shouldn't load, example:
   # blacklist:
   #   -reminder
+  #   -general
   blacklist:

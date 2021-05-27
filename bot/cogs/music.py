@@ -328,8 +328,8 @@ class Music(commands.Cog):
             client_data.timestamp = timedelta()
 
             # Show song that was just played
-            channel = client_data.channel  # type: discord.TextChannel
-            message = client_data.message  # type: discord.Message
+            channel = client_data.channel
+            message = client_data.message
 
             async with channel.typing():
                 embed, image = await self.make_np_embed(client_data.now_playing, client_data.timestamp)
