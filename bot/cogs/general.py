@@ -93,8 +93,10 @@ class General(commands.Cog):
 
         try:
             lower, upper = parse_bounds(bounds)
+            upper = max(upper, 1)
         except ValueError:
             await send_embed(ctx, 'general.error.roll_error')
+            return
 
         value = randint(lower, upper)
 
