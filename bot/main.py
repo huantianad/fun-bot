@@ -1,8 +1,8 @@
 import traceback
 import typing
-from datetime import timedelta
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from glob import glob
 
 import discord
@@ -37,6 +37,7 @@ class FunBot(commands.Bot):
         self.config = read_config()
         self.token = self.config['Bot']['token']
         self.color = discord.Color.gold()
+        self.startup_time = datetime.now(timezone.utc)
 
         self.music_data = defaultdict(ClientData)
 

@@ -19,6 +19,9 @@ general:
   ping:
     description: "Pong!"
 
+  uptime:
+    description: "The bot has been online for %{uptime}."
+
   eval:
     title: "Eval result:"
     description: "`%{result}`"
