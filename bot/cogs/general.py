@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, timezone
+from random import randint
 from typing import Optional
 
-from discord import TextChannel
 from discord.ext import commands
 
 from ..lang import send_embed
 from ..main import FunBot
+from ..help import Help
 
 
 def delta_to_string(delta: timedelta) -> str:
@@ -52,9 +53,22 @@ def delta_to_string(delta: timedelta) -> str:
     return output
 
 
+def parse_bounds(bounds: str) -> tuple[int, int]:
+    if bounds is None:
+        return 1, 100
+    try:
+        return 1, int(bounds)
+    except ValueError:
+        lower, upper = bounds.split('-')
+        return int(lower), int(upper)
+
+
 class General(commands.Cog):
     def __init__(self, bot: FunBot):
         self.bot = bot
+
+        self.bot.help_command = Help()
+        self.bot.help_command.cog = self
 
     @commands.command()
     async def ping(self, ctx: commands.Context):
@@ -70,31 +84,21 @@ class General(commands.Cog):
         await send_embed(ctx, 'general.uptime', uptime=delta_to_string(uptime))
 
     @commands.command()
-    @commands.has_permissions(manage_guild=True)
-    async def echo(self, ctx: commands.Context, channel: Optional[TextChannel], *, message: str):
-        """Echo's a message into an optional channel"""
+    async def roll(self, ctx: commands.Context, bounds: Optional[str]):
+        """Chooses a random number between the bounds given.
+        The bounds should either be in the form `<upper>` or `<lower>-<upper>`.
+        If no lower bound is given, 1 is used.
+        If no upper bound is given, 100 is used.
+        """
 
-        await (channel or ctx).send(message)
-        await ctx.message.add_reaction("✅")
+        try:
+            lower, upper = parse_bounds(bounds)
+        except ValueError:
+            await send_embed(ctx, 'general.error.roll_error')
 
-    @commands.command()
-    @commands.is_owner()
-    async def eval(self, ctx: commands.Context, *, expression: str):
-        """Evaluates a python expression"""
+        value = randint(lower, upper)
 
-        await send_embed(ctx, 'general.eval', result=eval(expression))
-
-    @commands.command()
-    @commands.is_owner()
-    async def shutdown(self, ctx: commands.Context):
-        """Turns off the bot"""
-
-        await send_embed(ctx, 'general.shutdown')
-
-        for client in self.bot.voice_clients:
-            await client.disconnect()
-
-        await self.bot.close()
+        await send_embed(ctx, 'general.roll', user=ctx.author.mention, value=value, lower=lower, upper=upper)
 
 
 def setup(bot):

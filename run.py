@@ -1,6 +1,6 @@
 import asyncio
 
-from bot.main import FunBot
+from bot import FunBot
 
 
 async def main():

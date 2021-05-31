@@ -15,20 +15,32 @@ error:
   missing_permissions:
     description: "Hey you're not allowed to do that!"
 
+
 general:
+  error:
+    color: "red"
+
+    roll_error:
+      description: "Your input should either be in the form `<upper>` or `<lower>-<upper>`!"
+
   ping:
     description: "Pong!"
 
   uptime:
     description: "The bot has been online for %{uptime}."
 
+  roll:
+    description: "**%{user}** rolls a **%{value}** (%{lower}-%{upper})."
+
+admin:
+  shutdown:
+    description: "Shutting down... :octagonal_sign:"
+
   eval:
     title: "Eval result:"
     description: "`%{result}`"
     color: "green"
 
-  shutdown:
-    description: "Shutting down... :octagonal_sign:"
 
 music:
   color: "green"

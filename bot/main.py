@@ -10,7 +10,6 @@ from cogwatch import watch
 from discord.ext import commands
 from yaml import safe_load
 
-from .help import Help
 from .lang import send_embed
 
 
@@ -31,7 +30,7 @@ class ClientData:
 
 class FunBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="&", intents=discord.Intents.all(), help_command=Help(), case_insensitive=True)
+        super().__init__(command_prefix="&", intents=discord.Intents.all(), case_insensitive=True)
         self.add_check(self.global_check)
 
         self.config = read_config()
