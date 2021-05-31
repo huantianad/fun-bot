@@ -93,7 +93,8 @@ class General(commands.Cog):
 
         try:
             lower, upper = parse_bounds(bounds)
-            upper = max(upper, 1)
+            if upper < 1:
+                upper = 100
         except ValueError:
             await send_embed(ctx, 'general.error.roll_error')
             return
