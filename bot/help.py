@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 
-class Help(commands.MinimalHelpCommand):
+class FunHelp(commands.MinimalHelpCommand):
     def __init__(self, **options):
         super().__init__(**options)
         self.color = discord.Color.gold()

@@ -1,12 +1,12 @@
+import random
 from datetime import datetime, timedelta, timezone
-from random import randint
 from typing import Optional
 
 from discord.ext import commands
 
+from ..help import FunHelp
 from ..lang import send_embed
 from ..main import FunBot
-from ..help import Help
 
 
 def delta_to_string(delta: timedelta) -> str:
@@ -67,7 +67,7 @@ class General(commands.Cog):
     def __init__(self, bot: FunBot):
         self.bot = bot
 
-        self.bot.help_command = Help()
+        self.bot.help_command = FunHelp()
         self.bot.help_command.cog = self
 
     @commands.command()
@@ -93,13 +93,12 @@ class General(commands.Cog):
 
         try:
             lower, upper = parse_bounds(bounds)
-            if upper < 1:
-                upper = 100
+            upper = max(upper, lower)
         except ValueError:
             await send_embed(ctx, 'general.error.roll_error')
             return
 
-        value = randint(lower, upper)
+        value = random.randint(lower, upper)
 
         await send_embed(ctx, 'general.roll', user=ctx.author.mention, value=value, lower=lower, upper=upper)
 

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from discord import TextChannel
+import discord
 from discord.ext import commands
 
 from ..lang import send_embed
@@ -11,9 +11,9 @@ class Admin(commands.Cog):
     def __init__(self, bot: FunBot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(aliases=['tell'])
     @commands.has_permissions(manage_guild=True)
-    async def echo(self, ctx: commands.Context, channel: Optional[TextChannel], *, message: str):
+    async def echo(self, ctx: commands.Context, channel: Optional[discord.TextChannel], *, message: str):
         """Echo's a message into an optional channel"""
 
         await (channel or ctx).send(message)
