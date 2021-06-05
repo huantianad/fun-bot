@@ -1,9 +1,11 @@
 import base64
+import json
+import os
 import random
 from datetime import timedelta
 from glob import glob
 from io import BytesIO
-from typing import Union
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands, tasks
@@ -11,10 +13,13 @@ from mutagen import File
 from mutagen.flac import FLAC, Picture
 
 from ..lang import send_embed
-from ..main import FunBot
+from ..main import ClientData, FunBot
 
 
 def connect_ensure_voice():
+    """Same as ensure_voice but instead allows the bot to join if not already connected
+    Internally calls the join command"""
+
     async def predicate(ctx: commands.Context):
         return await ctx.invoke(ctx.bot.get_command('join'))
 
@@ -44,9 +49,30 @@ def timedelta_to_str(time: timedelta) -> str:
     return output
 
 
-def create_bar(frac: float) -> str:
-    start = round(frac * 30)
-    return '▬' * start + '🔘' + '▬' * (29 - start)
+def create_bar(current_time: timedelta, total_time: timedelta) -> str:
+    str_current_time = timedelta_to_str(current_time)
+    str_total_time = timedelta_to_str(total_time)
+
+    start = round(current_time / total_time * 30)
+    bar = '▬' * start + '🔘' + '▬' * (29 - start)
+
+    return f'`{str_current_time} {bar} {str_total_time}`'
+
+
+async def update_bar(client_data: ClientData) -> None:
+    if not client_data.message:
+        return
+
+    embed: discord.Embed = client_data.message.embeds[0]
+    index = len(embed.fields) - 1
+
+    file_ = File(client_data.now_playing)
+    total_length = timedelta(seconds=file_.info.length//1)
+
+    new_bar = create_bar(client_data.timestamp, total_length)
+    embed.set_field_at(index, name="** **", value=new_bar)
+
+    await client_data.message.edit(embed=embed)
 
 
 def set_if_exists(embed: discord.Embed, name: str, value: Union[list[str], str, float], inline=True) -> None:
@@ -59,7 +85,7 @@ def set_if_exists(embed: discord.Embed, name: str, value: Union[list[str], str, 
     embed.add_field(name=name, value=value, inline=inline)
 
 
-def get_art(file_):
+def get_art(file_) -> tuple[Picture, str]:
     extensions = {
         "image/jpeg": "jpg",
         "image/png": "png",
@@ -80,12 +106,29 @@ def get_art(file_):
     return picture, ext
 
 
+def load_cache() -> dict[str, str]:
+    if not os.path.exists('cache.json'):
+        return {}
+
+    with open('cache.json', 'r') as file:
+        return json.load(file)
+
+
+def save_cache(cache: dict[str, str]) -> None:
+    with open('cache.json', 'w+') as file:
+        json.dump(cache, file, indent=4)
+
+
 class Music(commands.Cog):
     def __init__(self, bot: FunBot):
         self.bot = bot
 
+        self.bar_update_loop.start()
         self.music_loop.start()
         self.music_data = self.bot.music_data
+
+        self.cache_channel: discord.TextChannel = self.bot.get_channel(self.bot.config['Bot']['cache_channel'])
+        self.cache = load_cache()
 
     @commands.command(aliases=['j'])
     async def join(self, ctx: commands.Context) -> bool:
@@ -201,7 +244,7 @@ class Music(commands.Cog):
         await send_embed(ctx, 'music.skipped')
 
     @ensure_voice()
-    @commands.command(aliases=['r'])
+    @commands.command(aliases=['r', 'rm'])
     async def remove(self, ctx: commands.Context, *groups: str):
         """Removes a group from the queue"""
 
@@ -248,21 +291,13 @@ class Music(commands.Cog):
             return
 
         async with ctx.typing():
-            embed, image = await self.make_np_embed(path, timestamp)
+            embed = await self.make_np_embed(path, timestamp)
+            await ctx.send(embed=embed)
 
-            if image is not None:
-                await ctx.send(embed=embed, file=image)
-            else:
-                await ctx.send(embed=embed)
-
-    async def make_np_embed(self, path: str, timestamp: timedelta):
+    async def make_np_embed(self, path: str, timestamp: timedelta) -> discord.Embed:
         file_ = File(path)
 
         total_length = timedelta(seconds=file_.info.length//1)
-        str_timestamp = timedelta_to_str(timestamp)
-        str_total_length = timedelta_to_str(total_length)
-
-        bar = create_bar(timestamp/total_length)
 
         title = file_.get('title', path)
         if isinstance(title, list):
@@ -274,15 +309,27 @@ class Music(commands.Cog):
         set_if_exists(embed, name='Album', value=file_.get('album'))
         set_if_exists(embed, name='Track', value=file_.get('tracknumber'))
 
-        embed.add_field(name='** **', value=f'`{str_timestamp} {bar} {str_total_length}`')
+        embed.add_field(name='** **', value=create_bar(timestamp, total_length))
+        embed.set_thumbnail(url=await self.get_cache_url(path))
 
+        return embed
+
+    async def get_cache_url(self, path: str) -> Optional[str]:
+        if path in self.cache:
+            return self.cache[path]
+
+        file_ = File(path)
         picture, ext = get_art(file_)
 
-        if picture is not None:
-            picture = discord.File(BytesIO(picture.data), filename=f'cover.{ext}')
-            embed.set_thumbnail(url=f'attachment://cover.{ext}')
+        if picture:
+            file = discord.File(BytesIO(picture.data), filename=f'cover.{ext}')
+            message: discord.Message = await self.cache_channel.send(file=file)
+            self.cache[path] = message.attachments[0].url
+        else:
+            self.cache[path] = None
 
-        return embed, picture
+        save_cache(self.cache)
+        return self.cache[path]
 
     @ensure_voice()
     @commands.command(aliases=['q'])
@@ -332,17 +379,25 @@ class Music(commands.Cog):
             message = client_data.message
 
             async with channel.typing():
-                embed, image = await self.make_np_embed(client_data.now_playing, client_data.timestamp)
+                embed = await self.make_np_embed(client_data.now_playing, client_data.timestamp)
 
                 if message:
                     await message.delete()
 
-                if image is not None:
-                    client_data.message = await channel.send(embed=embed, file=image)
-                else:
-                    client_data.message = await channel.send(embed=embed)
+                client_data.message = await channel.send(embed=embed)
+
+    @tasks.loop(seconds=5)
+    async def bar_update_loop(self):
+        for client in self.bot.voice_clients:
+            if not client.is_playing():
+                continue
+
+            client_data = self.music_data[client.guild.id]
+
+            await update_bar(client_data)
 
     @music_loop.before_loop
+    @bar_update_loop.before_loop
     async def before_music(self):
         await self.bot.wait_until_ready()
 

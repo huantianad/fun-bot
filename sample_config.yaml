@@ -2,6 +2,7 @@
 
 Bot:
   token: # Put your bot token here!!!!!!
+  cache_channel: 000000000000
 
 Cogs:
   # Cogs that the bot shouldn't load, example:

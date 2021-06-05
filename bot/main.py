@@ -38,7 +38,7 @@ class FunBot(commands.Bot):
         self.color = discord.Color.gold()
         self.startup_time = datetime.now(timezone.utc)
 
-        self.music_data = defaultdict(ClientData)
+        self.music_data: defaultdict[int, ClientData] = defaultdict(ClientData)
 
     @watch(path='bot/cogs')
     async def on_ready(self):

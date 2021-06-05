@@ -142,6 +142,7 @@ cython_debug/
 # config
 config.yaml
 user_data.json
+cache.json
 
 # music
 music/*/
