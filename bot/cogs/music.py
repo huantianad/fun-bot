@@ -72,7 +72,10 @@ async def update_bar(client_data: ClientData) -> None:
     new_bar = create_bar(client_data.timestamp, total_length)
     embed.set_field_at(index, name="** **", value=new_bar)
 
-    await client_data.message.edit(embed=embed)
+    try:
+        await client_data.message.edit(embed=embed)
+    except discord.NotFound:
+        pass
 
 
 def set_if_exists(embed: discord.Embed, name: str, value: Union[list[str], str, float], inline=True) -> None:
