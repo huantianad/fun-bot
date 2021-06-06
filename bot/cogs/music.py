@@ -293,9 +293,8 @@ class Music(commands.Cog):
             await send_embed(ctx, 'music.error.nothing_playing', prefix=ctx.prefix)
             return
 
-        async with ctx.typing():
-            embed = await self.make_np_embed(path, timestamp)
-            await ctx.send(embed=embed)
+        embed = await self.make_np_embed(path, timestamp)
+        await ctx.send(embed=embed)
 
     async def make_np_embed(self, path: str, timestamp: timedelta) -> discord.Embed:
         file_ = File(path)
@@ -386,17 +385,13 @@ class Music(commands.Cog):
             # Reset the timestamp
             client_data.timestamp = timedelta()
 
-            # Show song that was just played
-            channel = client_data.channel
-            message = client_data.message
+            # Send a np message for the song that just started playing
+            embed = await self.make_np_embed(client_data.now_playing, client_data.timestamp)
 
-            async with channel.typing():
-                embed = await self.make_np_embed(client_data.now_playing, client_data.timestamp)
+            if client_data.message:
+                await client_data.message.delete()
 
-                if message:
-                    await message.delete()
-
-                client_data.message = await channel.send(embed=embed)
+            client_data.message = await client_data.channel.send(embed=embed)
 
     @tasks.loop(seconds=5)
     async def bar_update_loop(self):
