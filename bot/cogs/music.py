@@ -334,6 +334,15 @@ class Music(commands.Cog):
         save_cache(self.cache)
         return self.cache[path]
 
+    @commands.is_owner()
+    @commands.command()
+    async def populate_cache(self, ctx: commands.Context):
+        """Admin-only command to populate the cache."""
+
+        songs = [song for group in dir_list() for song in glob(f'music/{group}/*')]
+        urls = [await self.get_cache_url(song) for song in songs]
+        await ctx.send(len(urls))
+
     @ensure_voice()
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context):
