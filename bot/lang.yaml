@@ -32,6 +32,9 @@ general:
   roll:
     description: "**%{user}** rolls a **%{value}** (%{lower}-%{upper})."
 
+  flip:
+    description: "You flip a coin in the air. It lands on **%{result}**."
+
 admin:
   shutdown:
     description: "Shutting down... :octagonal_sign:"

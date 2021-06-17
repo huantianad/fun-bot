@@ -102,6 +102,13 @@ class General(commands.Cog):
 
         await send_embed(ctx, 'general.roll', user=ctx.author.mention, value=value, lower=lower, upper=upper)
 
+    @commands.command(aliases=['coin'])
+    async def flip(self, ctx: commands.Context):
+        """Flips a coin!"""
+
+        result = "heads" if random.randint(0, 1) == 1 else "tails"
+        await send_embed(ctx, 'general.flip', result=result)
+
 
 def setup(bot):
     bot.add_cog(General(bot))
