@@ -124,7 +124,7 @@ class TTTGrid:
         yield ((i, n - 1 - i) for i in range(n))  # Diagonal top right to bottom left
 
 
-class General(commands.Cog):
+class Gaming(commands.Cog):
     def __init__(self, bot: FunBot) -> None:
         self.bot = bot
 
@@ -143,4 +143,4 @@ class General(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(General(bot))
+    bot.add_cog(Gaming(bot))
