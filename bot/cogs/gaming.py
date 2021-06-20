@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Iterator, Union
+from typing import Optional, Iterator
 
 import discord
 from discord.ext import commands
@@ -29,6 +29,10 @@ class TTTGame:
         }
 
     async def start(self) -> None:
+        """
+        Main method that is called to start the game.
+        """
+
         # Send the initial message
         self.message: discord.Message = await self.ctx.send(embed=self.make_embed())
 
@@ -52,7 +56,15 @@ class TTTGame:
         await self.message.edit(embed=self.make_embed())
 
     def make_embed(self) -> discord.Embed:
-        winner = self.get_winner()
+        """
+        Creates an embed that describes the current state of the game.
+        Used to edit the message to show an updated grid + current turn.
+
+        Returns:
+            discord.Embed: The embed.
+        """
+
+        winner = {1: self.player_1, 2: self.player_2, 3: "draw"}.get(self.grid.check_for_end())
         message = (f"{self.current_player.mention}'s turn!" if winner is None
                    else f"{winner.mention} has won!" if winner != "draw"
                    else "It's a draw!")
@@ -63,10 +75,11 @@ class TTTGame:
 
         return embed
 
-    def get_winner(self) -> Union[discord.Member, int, None]:
-        return {1: self.player_1, 2: self.player_2, 3: "draw"}.get(self.grid.check_for_end())
-
     def check(self, r: discord.Reaction, u: discord.User) -> bool:
+        """
+        Check to make sure the user is the current player, as well as the reaction is for a valid square.
+        """
+
         index = self.reaction_emojis.get(r.emoji)
         if index is None:
             return
@@ -86,6 +99,13 @@ class TTTGrid:
         }
 
     def pretty_grid(self) -> str:
+        """
+        Creates a stringified grid that uses emojis.
+
+        Returns:
+            str: The stringified grid.
+        """
+
         str_grid = "\n".join("".join(map(str, row)) for row in self.grid)  # Adds a new line every three emojis.
         for value, emoji in self.grid_emojis.items():
             str_grid = str_grid.replace(str(value), emoji)
@@ -93,6 +113,15 @@ class TTTGrid:
         return str_grid
 
     def check_for_end(self) -> Optional[int]:
+        """
+        Checks if the grid is in an end board state, a player has won or if there is a draw.
+        1 or 2 means player 1 or 2 has won, 3 means the game is a draw.
+        Will return None if the game has not finished.
+
+        Returns:
+            Optional[int]: An integer describing the end state.
+        """
+
         if self.is_winner(1):
             return 1
 
@@ -105,6 +134,16 @@ class TTTGrid:
         return None
 
     def is_winner(self, player_int: int) -> bool:
+        """
+        Checks if the given player has won.
+
+        Args:
+            player_int (int): Which player to check.
+
+        Returns:
+            bool: If the given player has won.
+        """
+
         for indexes in self.win_indexes():
             if all(self.grid[r][c] == player_int for r, c in indexes):
                 return True
@@ -112,6 +151,14 @@ class TTTGrid:
         return False
 
     def win_indexes(self) -> Iterator[Iterator[tuple[int, int]]]:
+        """
+        Creates all the possible combinations of positions that you could win with.
+        For example, will generate all rows on the board, all cols, all diagonals
+
+        Yields:
+            Iterator[Iterator[tuple[int, int]]]: An iterator of iterators of indicies.
+        """
+
         n = 3  # Number of rows/cols in grid
 
         for r in range(n):  # Rows
