@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Iterator
+from typing import Optional, Iterable
 
 import discord
 from discord.ext import commands
@@ -29,9 +29,7 @@ class TTTGame:
         }
 
     async def start(self) -> None:
-        """
-        Main method that is called to start the game.
-        """
+        """Main method that is called to start the game."""
 
         # Send the initial message
         self.message: discord.Message = await self.ctx.send(embed=self.make_embed())
@@ -40,11 +38,14 @@ class TTTGame:
         for emoji in self.reaction_emojis:
             await self.message.add_reaction(emoji)
 
-        # do_turn returns self.grid.check_for_end(), so it is None with the game hasn't finished
+        # While the game hasn't ended, do a turn.
         while self.grid.check_for_end() is None:
             await self.do_turn()
 
     async def do_turn(self) -> None:
+        """Essentially does a turn. This waits for the current user to do a move by reacting.
+        Afterwards, modify the grid to reflect this move, then switch current players and edit the message.
+        """
         reaction, user = await self.ctx.bot.wait_for("reaction_add", check=self.check, timeout=60*60*24)
         row, col = self.reaction_emojis[reaction.emoji]
 
@@ -56,8 +57,7 @@ class TTTGame:
         await self.message.edit(embed=self.make_embed())
 
     def make_embed(self) -> discord.Embed:
-        """
-        Creates an embed that describes the current state of the game.
+        """Creates an embed that describes the current state of the game.
         Used to edit the message to show an updated grid + current turn.
 
         Returns:
@@ -76,15 +76,13 @@ class TTTGame:
         return embed
 
     def check(self, r: discord.Reaction, u: discord.User) -> bool:
-        """
-        Check to make sure the user is the current player, as well as the reaction is for a valid square.
-        """
+        """Check to make sure the user is the current player, as well as the reaction is for a valid square."""
 
         index = self.reaction_emojis.get(r.emoji)
         if index is None:
             return
-        row, col = index
 
+        row, col = index
         return u == self.current_player and self.grid.grid[row][col] == 0
 
 
@@ -99,8 +97,7 @@ class TTTGrid:
         }
 
     def pretty_grid(self) -> str:
-        """
-        Creates a stringified grid that uses emojis.
+        """Creates a stringified grid that uses emojis.
 
         Returns:
             str: The stringified grid.
@@ -113,8 +110,7 @@ class TTTGrid:
         return str_grid
 
     def check_for_end(self) -> Optional[int]:
-        """
-        Checks if the grid is in an end board state, a player has won or if there is a draw.
+        """Checks if the grid is in an end board state, a player has won or if there is a draw.
         1 or 2 means player 1 or 2 has won, 3 means the game is a draw.
         Will return None if the game has not finished.
 
@@ -134,8 +130,7 @@ class TTTGrid:
         return None
 
     def is_winner(self, player_int: int) -> bool:
-        """
-        Checks if the given player has won.
+        """Checks if the given player has won.
 
         Args:
             player_int (int): Which player to check.
@@ -144,19 +139,27 @@ class TTTGrid:
             bool: If the given player has won.
         """
 
-        for indexes in self.win_indexes():
-            if all(self.grid[r][c] == player_int for r, c in indexes):
-                return True
+        return any(self.all_equals(indexes, player_int) for indexes in self.win_indexes())
 
-        return False
+    def all_equals(self, indexes: Iterable[tuple[int, int]], value: int) -> bool:
+        """Checks if all of the given indexes have the given value in it.
 
-    def win_indexes(self) -> Iterator[Iterator[tuple[int, int]]]:
+        Args:
+            indexes (Iterable[tuple[int, int]]): The indexes to check.
+            value (int): The value to check for.
+
+        Returns:
+            bool: Whether all of the values equal the given value
         """
-        Creates all the possible combinations of positions that you could win with.
-        For example, will generate all rows on the board, all cols, all diagonals
+
+        return all(self.grid[r][c] == value for r, c in indexes)
+
+    def win_indexes(self) -> Iterable[Iterable[tuple[int, int]]]:
+        """Creates all the possible combinations of positions that you could win with.
+        To be specific, this will generate all rows on the board, all cols, all diagonals
 
         Yields:
-            Iterator[Iterator[tuple[int, int]]]: An iterator of iterators of indicies.
+            Iterable[Iterable[tuple[int, int]]]: ALl indicies of positions on the gird in a line.
         """
 
         n = 3  # Number of rows/cols in grid
@@ -167,8 +170,11 @@ class TTTGrid:
         for c in range(n):  # Columns
             yield ((r, c) for r in range(n))
 
-        yield ((i, i) for i in range(n))  # Diagonal top left to bottom right
-        yield ((i, n - 1 - i) for i in range(n))  # Diagonal top right to bottom left
+        # Diagonal top left to bottom right
+        yield ((i, i) for i in range(n))
+
+        # Diagonal top right to bottom left
+        yield ((i, n - 1 - i) for i in range(n))
 
 
 class Gaming(commands.Cog):
