@@ -28,6 +28,20 @@ class Admin(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    async def exec(self, ctx: commands.Context, *, statement: str):
+        """Executes a python statement"""
+
+        # Make an async function with the code and `exec` it
+        exec(
+            'async def __ex(ctx): ' +
+            ''.join(f'\n {line}' for line in statement.split('\n'))
+        )
+
+        # Get `__ex` from local variables, call it and return the result
+        return await locals()['__ex'](ctx)
+
+    @commands.command()
+    @commands.is_owner()
     async def shutdown(self, ctx: commands.Context):
         """Turns off the bot"""
 
