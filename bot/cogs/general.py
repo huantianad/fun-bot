@@ -2,7 +2,9 @@ import random
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import discord
 from discord.ext import commands
+from discord import ui
 
 from ..help import FunHelp
 from ..lang import send_embed
@@ -108,6 +110,23 @@ class General(commands.Cog):
 
         result = "heads" if random.randint(0, 1) == 1 else "tails"
         await send_embed(ctx, 'general.flip', result=result)
+
+    @commands.command()
+    async def button(self, ctx: commands.Context):
+        """Aaaaaa"""
+
+        class MyView(ui.View):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.count = 0
+
+            @ui.button(emoji='😔', style=discord.ButtonStyle.green)
+            async def button1(self, button: ui.Button, interaction: discord.Interaction):
+                self.count += 1
+                await interaction.message.edit(content=self.count)
+
+        await ctx.send('message', view=MyView())
 
 
 def setup(bot):
